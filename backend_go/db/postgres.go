@@ -2,26 +2,18 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var Pool *pgxpool.Pool
 
-func Init() {
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "postgres://letun_user:letun_pass@localhost:5432/letun"
-	}
-
+func InitDB() {
 	var err error
-	Pool, err = pgxpool.New(context.Background(), dsn)
-	if err != nil {
-		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
-	}
+	Pool, err = pgxpool.New(context.Background(), "postgres://letun_user:letun_pass@localhost:5432/letun?sslmode=disable")
 
-	fmt.Println("✅ Подключение к PostgreSQL установлено")
+	if err != nil {
+		log.Fatalf("❌ Ошибка подключения к БД: %v", err)
+	}
 }

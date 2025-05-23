@@ -1,26 +1,20 @@
 package main
 
 import (
-	"letunbackend/db"
-	"letunbackend/handlers"
-	"letunbackend/ws"
-	"log"
-	"net/http"
+    "log"
+    "net/http"
+
+    "letunbackend/db"
+    "letunbackend/ws"
 )
 
 func main() {
-	db.Init()
-	ws.Broadcast = make(chan []byte)
-	handlers.Broadcast = ws.Broadcast
+    db.InitDB()
+    go ws.HandleBroadcast()
 
-	http.HandleFunc("/ws", ws.HandleConnections)
-	http.HandleFunc("/command", handlers.HandleCommand)
+    http.HandleFunc("/ws", ws.HandleConnections)
+    http.HandleFunc("/command", ws.HandleCommand)
 
-	go ws.HandleBroadcast()
-
-	log.Println("✅ Go backend запущен на http://localhost:8080")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatalf("Ошибка запуска сервера: %v", err)
-	}
+    log.Println("✅ Backend запущен на http://localhost:8080")
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }
