@@ -1,0 +1,1 @@
+Зависимости для запуска эмуляции (requests, opencv-python, websocket-client).

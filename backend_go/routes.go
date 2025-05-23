@@ -1,0 +1,1 @@
+Описание роутов REST API и WebSocket.
