@@ -5,21 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6116f512-3c1a-4acb-a61a-472a40fc528c" name="Changes" comment="mrg">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/handlers/drone.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/handlers/flight.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/handlers/telemetry.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/handlers/user.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/handlers/violation.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend_go/db/db.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend_go/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/backend_go/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend_go/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/backend_go/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend_go/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend_go/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/models/drone.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/models/flight.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/models/telemetry.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend_go/models/telemetry.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/models/user.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/models/zone.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend_go/routes.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/emulation_python/telemetry_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/emulation_python/telemetry_emulator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend_go/ws/broadcast.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend_go/ws/broadcast.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

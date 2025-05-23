@@ -1,7 +1,5 @@
 package ws
 
-// import "log"
-
 func HandleBroadcast() {
 	for {
 		msg := <-Broadcast

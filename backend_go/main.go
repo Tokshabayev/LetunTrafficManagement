@@ -1,14 +1,15 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
+	"letunbackend/db"
 	"letunbackend/handlers"
 	"letunbackend/ws"
+	"log"
+	"net/http"
 )
 
 func main() {
+	db.Init()
 	ws.Broadcast = make(chan []byte)
 	handlers.Broadcast = ws.Broadcast
 
