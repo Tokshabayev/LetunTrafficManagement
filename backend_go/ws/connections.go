@@ -2,10 +2,13 @@ package ws
 
 import (
 	"encoding/json"
-	"letunbackend/db"
+	"io"
 	"log"
 	"net/http"
 	"sync"
+	"time"
+
+	"letunbackend/db"
 
 	"github.com/gorilla/websocket"
 )
@@ -14,7 +17,7 @@ var (
 	upgrader  = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	Broadcast = make(chan []byte)
 	clients   = make(map[*Client]bool)
-	clientsMu sync.Mutex
+	mu        sync.Mutex
 )
 
 type Client struct {
@@ -22,93 +25,168 @@ type Client struct {
 	Send chan []byte
 }
 
+// Общая структура для определения типа
+type GenericMsg struct {
+	Type string `json:"type"`
+}
+
+type StartMsg struct {
+	Type      string       `json:"type"`
+	DroneID   int          `json:"drone_id"`
+	Route     [][2]float64 `json:"route"`
+	Timestamp int64        `json:"timestamp"`
+}
+
+type TelemetryMsg struct {
+	Type      string  `json:"type"`
+	DroneID   int     `json:"drone_id"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Altitude  int     `json:"altitude"`
+	Speed     int     `json:"speed"`
+}
+
+// Timestamp – float64, чтобы принять дробный (от Python)
+type StopMsg struct {
+	Type      string  `json:"type"`
+	DroneID   int     `json:"drone_id"`
+	Timestamp float64 `json:"timestamp"`
+}
+
+// HandleConnections — WS-эндпоинт
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
+	wsConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("❌ WebSocket upgrade error: %v", err)
+		log.Printf("❌ WS upgrade error: %v", err)
 		return
 	}
-	client := &Client{Conn: ws, Send: make(chan []byte)}
-	clientsMu.Lock()
+	defer wsConn.Close()
+
+	client := &Client{Conn: wsConn, Send: make(chan []byte, 256)}
+	mu.Lock()
 	clients[client] = true
-	clientsMu.Unlock()
+	mu.Unlock()
 
 	go writeMessages(client)
 
 	for {
-		_, msg, err := ws.ReadMessage()
+		_, msg, err := wsConn.ReadMessage()
 		if err != nil {
-			clientsMu.Lock()
+			mu.Lock()
 			delete(clients, client)
-			clientsMu.Unlock()
-			break
+			mu.Unlock()
+			return
 		}
 
-		var telemetry db.Telemetry
-		if err := json.Unmarshal(msg, &telemetry); err == nil && telemetry.Type == "telemetry" {
-			log.Printf("📡 [Drone %d] %.6f, %.6f, %dm, %dkm/h",
-				telemetry.DroneID,
-				telemetry.Latitude,
-				telemetry.Longitude,
-				telemetry.Altitude,
-				telemetry.Speed,
-			)
-			if err := db.SaveTelemetry(telemetry); err == nil {
-				log.Printf("✅ Телеметрия сохранена: drone_id=%d, lat=%.5f, lon=%.5f",
-					telemetry.DroneID,
-					telemetry.Latitude,
-					telemetry.Longitude,
+		log.Printf("RAW WS msg: %s", msg)
+
+		var g GenericMsg
+		if err := json.Unmarshal(msg, &g); err != nil {
+			log.Printf("❌ JSON unmarshal error: %v", err)
+			continue
+		}
+
+		switch g.Type {
+		case "start":
+			var m StartMsg
+			if err := json.Unmarshal(msg, &m); err == nil {
+				log.Printf("▶️ Дрон %d стартовал, маршрут: %v", m.DroneID, m.Route)
+			}
+			Broadcast <- msg
+
+		case "telemetry":
+			var t TelemetryMsg
+			if err := json.Unmarshal(msg, &t); err == nil {
+				log.Printf("📡 [Drone %d] %.6f, %.6f — alt %dm, %dkm/h",
+					t.DroneID, t.Latitude, t.Longitude, t.Altitude, t.Speed,
 				)
+				if err := db.SaveTelemetry(db.Telemetry{
+					Type:      t.Type,
+					DroneID:   t.DroneID,
+					Latitude:  t.Latitude,
+					Longitude: t.Longitude,
+					Altitude:  t.Altitude,
+					Speed:     t.Speed,
+				}); err == nil {
+					log.Printf("✅ Телеметрия сохранена: drone_id=%d", t.DroneID)
+				}
+				zones, _ := db.CheckZoneViolation(t.Longitude, t.Latitude)
+				for _, z := range zones {
+					log.Printf("🚨 Дрон %d нарушил зону: %s", t.DroneID, z.Name)
+				}
 			}
+			Broadcast <- msg
 
-			noFlyZones, err := db.CheckZoneViolation(telemetry.Longitude, telemetry.Latitude)
-			if err != nil {
-				log.Printf("❌ CheckZoneViolation error: %v", err)
+		case "stop":
+			var s StopMsg
+			if err := json.Unmarshal(msg, &s); err == nil {
+				log.Printf("⏹ Дрон %d остановился (WS)", s.DroneID)
+			} else {
+				log.Printf("❌ stop unmarshal error: %v", err)
 			}
-			for _, z := range noFlyZones {
-				log.Printf("🚨 Дрон %d нарушил запретную зону: %s", telemetry.DroneID, z.Name)
-			}
-		}
+			Broadcast <- msg
 
-		Broadcast <- msg
-	}
-}
-
-func HandleBroadcast() {
-	for {
-		msg := <-Broadcast
-		clientsMu.Lock()
-		for client := range clients {
-			select {
-			case client.Send <- msg:
-			default:
-				close(client.Send)
-				delete(clients, client)
-			}
-		}
-		clientsMu.Unlock()
-	}
-}
-
-func writeMessages(client *Client) {
-	for msg := range client.Send {
-		if err := client.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-			client.Conn.Close()
-			clientsMu.Lock()
-			delete(clients, client)
-			clientsMu.Unlock()
-			break
+		default:
+			Broadcast <- msg
 		}
 	}
 }
 
+// HandleCommand — HTTP POST /command → ретрансляция в WS
 func HandleCommand(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	body := make([]byte, r.ContentLength)
-	r.Body.Read(body)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	var g GenericMsg
+	if err := json.Unmarshal(body, &g); err == nil {
+		switch g.Type {
+		case "start":
+			var m StartMsg
+			if err := json.Unmarshal(body, &m); err == nil {
+				m.Timestamp = time.Now().Unix()
+				log.Printf("▶️ [HTTP] Дрон %d стартовал, маршрут: %v", m.DroneID, m.Route)
+			}
+		case "stop":
+			var m StopMsg
+			if err := json.Unmarshal(body, &m); err == nil {
+				log.Printf("⏹ [HTTP] Дрон %d остановился", m.DroneID)
+			}
+		}
+	}
 	Broadcast <- body
 	w.Write([]byte("OK"))
+}
+
+// HandleBroadcast — рассылка всем подключённым WS-клиентам
+func HandleBroadcast() {
+	for msg := range Broadcast {
+		mu.Lock()
+		for c := range clients {
+			select {
+			case c.Send <- msg:
+			default:
+				close(c.Send)
+				delete(clients, c)
+			}
+		}
+		mu.Unlock()
+	}
+}
+
+func writeMessages(c *Client) {
+	for msg := range c.Send {
+		if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+			c.Conn.Close()
+			mu.Lock()
+			delete(clients, c)
+			mu.Unlock()
+			return
+		}
+	}
 }

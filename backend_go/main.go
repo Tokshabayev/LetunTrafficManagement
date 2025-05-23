@@ -1,20 +1,27 @@
+// backend_go/main.go
 package main
 
 import (
-    "log"
-    "net/http"
-
-    "letunbackend/db"
-    "letunbackend/ws"
+	"letunbackend/db"
+	"letunbackend/ws"
+	"log"
+	"net/http"
 )
 
 func main() {
-    db.InitDB()
-    go ws.HandleBroadcast()
+	// 1) Инициализируем пул
+	db.InitDB()
+	defer db.Pool.Close()
 
-    http.HandleFunc("/ws", ws.HandleConnections)
-    http.HandleFunc("/command", ws.HandleCommand)
+	// 2) Запускаем горутину для рассылки Broadcast
+	go ws.HandleBroadcast()
 
-    log.Println("✅ Backend запущен на http://localhost:8080")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	// 3) Регистрируем WS-хендлер
+	http.HandleFunc("/ws", ws.HandleConnections)
+	http.HandleFunc("/command", ws.HandleCommand)
+
+	log.Println("✅ Backend running on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

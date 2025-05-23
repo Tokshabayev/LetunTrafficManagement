@@ -1,0 +1,6 @@
+{
+  "type":"zone_violation",
+  "drone_id":1,
+  "zones":["Zone A","Zone B"],
+  "timestamp":168485XXXX
+}
