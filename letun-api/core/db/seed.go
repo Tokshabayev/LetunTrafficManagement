@@ -74,6 +74,7 @@ func Seed(db *gorm.DB) {
 				CreatedAt:    now,
 				UpdatedAt:    now,
 				RoleId:       adminRole.Id,
+				IsActive:     true,
 			}
 			db.Create(&adminUser)
 
