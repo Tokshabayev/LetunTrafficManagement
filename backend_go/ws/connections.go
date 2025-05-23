@@ -57,15 +57,24 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 		var telemetry models.TelemetryData
 		if err := json.Unmarshal(msg, &telemetry); err == nil && telemetry.Type == "telemetry" {
-			log.Printf("📡 [Drone %d] %f, %f, %dm, %dkm/h",
+			log.Printf("📡 [Drone %d] %.6f, %.6f, %dm, %dkm/h",
 				telemetry.DroneID, telemetry.Latitude, telemetry.Longitude, telemetry.Altitude, telemetry.Speed)
 
+			// Сохраняем телеметрию
 			err := db.SaveTelemetry(telemetry)
 			if err != nil {
 				log.Printf("❌ Ошибка записи в БД: %v", err)
 			}
+
+			// Проверка на влет в запретную зону
+			zones, err := db.CheckZoneViolation(telemetry.Latitude, telemetry.Longitude)
+			if err == nil && len(zones) > 0 {
+				log.Printf("🚫 Дрон %d нарушил запретную зону: %s", telemetry.DroneID, zones[0].Name)
+				// TODO: отправить предупреждение фронту через WebSocket
+			}
 		}
 
+		// Рассылаем телеметрию всем клиентам
 		Broadcast <- msg
 	}
 }
