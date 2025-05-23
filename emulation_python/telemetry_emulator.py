@@ -5,7 +5,7 @@ import random
 import time
 
 # Конфигурация
-ws_server_url = 'ws://localhost:8080/'
+ws_server_url = "ws://localhost:8080/ws"
 
 # Тестовые данные для локальной проверки
 test_commands = [
