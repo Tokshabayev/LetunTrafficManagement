@@ -19,64 +19,64 @@ import { useSelector } from 'react-redux';
 import { useAppDispatch, RootStore } from '@/src/app-store';
 import { FlightsState } from '@/src/slices/flights/flights-state';
 import { createFlightAsync, flightsActions } from '@/src/slices/flights/flights-slice';
+import 'leaflet/dist/leaflet.css';
 
-// Динамический импорт для рендеринга без SSR
-const MapContainer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Polyline = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polyline),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
-  { ssr: false }
-);
-const CircleMarker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.CircleMarker),
-  { ssr: false }
-);
+// React-Leaflet components (SSR disabled)
+const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
+const TileLayer   = dynamic(() => import('react-leaflet').then(m => m.TileLayer),   { ssr: false });
+const Polyline    = dynamic(() => import('react-leaflet').then(m => m.Polyline),    { ssr: false });
+const Marker      = dynamic(() => import('react-leaflet').then(m => m.Marker),      { ssr: false });
+const Circle      = dynamic(() => import('react-leaflet').then(m => m.Circle),      { ssr: false });
+const Tooltip     = dynamic(() => import('react-leaflet').then(m => m.Tooltip),     { ssr: false });
+
+// Message types from WebSocket
+interface StartMsg {
+  type: 'start';
+  flight_id: number;
+  drone_id: number;
+  timestamp: number; // seconds since epoch (float)
+}
+interface StopMsg {
+  type: 'stop';
+  flight_id: number;
+  drone_id: number;
+  timestamp: number;
+}
+interface TelemetryMsg {
+  type: 'telemetry';
+  flight_id: number;
+  drone_id: number;
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  speed: number;
+}
+type WSMsg = StartMsg | StopMsg | TelemetryMsg;
+
+// Telemetry entry stored in state
+interface TelemetryEntry extends TelemetryMsg {
+  receivedAt: Date;
+}
+
+// Hardcoded no-fly zones
+const NO_FLY_ZONES = [
+  { id: 1, name: 'Ak Orda Area',        center: [51.1258334, 71.4466667] as [number, number], radius: 5000 },
+  { id: 2, name: 'Astana Airport Area', center: [51.0313889, 71.4633333] as [number, number], radius: 5000 },
+];
 
 export function FlightTrack() {
   const dispatch = useAppDispatch();
-  const flightsState = useSelector<RootStore, FlightsState>((s) => s.flights);
+  const { trackFlightOpen: isOpen, isLoading, createFlight } = useSelector<RootStore, FlightsState>(s => s.flights);
+  const { isValid, error: createError, points: rawPoints } = createFlight;
+  const hasError = Boolean(createError);
 
-  const isOpen = flightsState.trackFlightOpen;
-  const isLoading = flightsState.isLoading;
-  const { isValid, error, points: rawPoints } = flightsState.createFlight;
-  const hasError = Boolean(error);
-
-  // Преобразуем введенный маршрут "lat,lng;lat,lng;..."
-  const route: [number, number][] = React.useMemo(() => {
-    if (!rawPoints) return [];
-    return rawPoints
-      .split(';')
-      .map((p) => {
-        const [lat, lng] = p.split(',').map((s) => parseFloat(s.trim()));
-        return isNaN(lat) || isNaN(lng) ? null : ([lat, lng] as [number, number]);
-      })
-      .filter((v): v is [number, number] => !!v);
-  }, [rawPoints]);
-
-  // Настройки карты
-  const defaultCenter: [number, number] = [51.1694, 71.4491]; // Астана
-  const defaultZoom = 10;
-  const routeZoom = 13;
-  const mapHeight = 400; // px
-
-  // Телеметрия: сырые сообщения и точки
-  const [rawWsLogs, setRawWsLogs] = useState<string[]>([]);
-  const [telemetryPoints, setTelemetryPoints] = useState<[number, number][]>([]);
+  const [telemetry, setTelemetry] = useState<TelemetryEntry[]>([]);
+  const [statusLog, setStatusLog] = useState<string[]>([]);
   const mapRef = useRef<any>(null);
 
-  // Инициализация Leaflet-иконок на клиенте
+  // Initialize Leaflet icons
   useEffect(() => {
-    import('leaflet').then((L) => {
+    import('leaflet').then(L => {
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -86,108 +86,151 @@ export function FlightTrack() {
     });
   }, []);
 
-  // WebSocket: получаем данные телеметрии
+  // Haversine distance (meters)
+  const haversine = (a: [number, number], b: [number, number]) => {
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    const [lat1, lon1] = a, [lat2, lon2] = b;
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const sinDlat = Math.sin(dLat/2), sinDlon = Math.sin(dLon/2);
+    const val = sinDlat*sinDlat + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*sinDlon*sinDlon;
+    return R * 2 * Math.atan2(Math.sqrt(val), Math.sqrt(1-val));
+  };
+
+  // WebSocket effect
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:8081/wsclient');
     ws.onopen = () => console.log('WS connected');
     ws.onmessage = ({ data }) => {
-      // Логируем каждый фрейм в консоль и в UI
-      console.log('WS ←', data);
-      setRawWsLogs((logs) => [data as string, ...logs].slice(0, 20));
-
       try {
-        const msg = JSON.parse(data as string);
-        if (msg.type === 'telemetry') {
-          const pos: [number, number] = [msg.latitude, msg.longitude];
-          setTelemetryPoints((prev) => [...prev, pos]);
-          // Центрирование на новую точку
-          mapRef.current?.setView(pos, route.length ? routeZoom : defaultZoom);
+        const msg = JSON.parse(data as string) as WSMsg;
+        if (msg.type === 'start') {
+          // timestamp может быть строкой или числом
+          let timestamp = msg.timestamp;
+          if (typeof timestamp === 'string') timestamp = parseFloat(timestamp);
+          // Проверка, в секундах или миллисекундах
+          const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+          const dt = new Date(ms);
+          const ts = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ` +
+                     `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
+          setStatusLog(prev => [...prev, `🚀 Drone ${msg.drone_id} started flight ${msg.flight_id} at ${ts}`]);
         }
-      } catch (err) {
-        console.error('WS parse error', err);
-      }
+        else if (msg.type === 'stop') {
+          let timestamp = msg.timestamp;
+          if (typeof timestamp === 'string') timestamp = parseFloat(timestamp);
+          const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+          const dt = new Date(ms);
+          const ts = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ` +
+                     `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
+          setStatusLog(prev => [...prev, `🛑 Drone ${msg.drone_id} stopped flight ${msg.flight_id} at ${ts}`]);
+        }
+        else if (msg.type === 'telemetry') {
+          const pt: [number, number] = [msg.latitude, msg.longitude];
+          NO_FLY_ZONES.forEach(zone => {
+            if (haversine(pt, zone.center) <= zone.radius) {
+              const vst = new Date().toISOString().replace('T',' ').split('.')[0];
+              setStatusLog(prev => [...prev, `⚠️ Drone ${msg.drone_id} entered zone '${zone.name}' at ${vst}`]);
+            }
+          });
+          const entry: TelemetryEntry = { ...msg, receivedAt: new Date() };
+          setTelemetry(prev => [...prev, entry]);
+          mapRef.current?.setView([entry.latitude, entry.longitude], 13);
+        }
+      } catch(e) { console.error(e); }
     };
-    ws.onerror = (e) => console.error('WS error', e);
+    ws.onerror = e => console.error('WS error', e);
     return () => ws.close();
-  }, [route.length]);
+  }, []);
+
+  // group telemetry by flight
+  const flightsMap = React.useMemo(() => {
+    const m = new Map<number, TelemetryEntry[]>();
+    telemetry.forEach(e => {
+      const arr = m.get(e.flight_id)||[];
+      arr.push(e);
+      m.set(e.flight_id, arr);
+    });
+    return m;
+  }, [telemetry]);
+
+  const colors = ['blue','green','orange','purple','darkred','darkblue'];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(o) => dispatch(flightsActions.setTrackFlightOpen(o))}>
+    <Dialog open={isOpen} onOpenChange={open => dispatch(flightsActions.setTrackFlightOpen(open))}>
       <DialogContent className="!max-w-none w-[1700px] max-h-[80vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Add flight</DialogTitle>
-          <DialogDescription className={hasError ? 'text-destructive' : ''}>
-            {hasError ? error : 'Flight will be added to the list.'}
+          <DialogTitle>Flight Tracking</DialogTitle>
+          <DialogDescription className={hasError?'text-destructive':''}>
+            {hasError?createError:'Real-time telemetry & zones'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 p-4">
-          {/* Ввод маршрута */}
+        {/* Status log */}
+        <div className="mb-4">
+          <strong>Status log:</strong>
+          <ul className="list-disc list-inside text-sm max-h-24 overflow-auto">
+            {statusLog.map((s,i)=><li key={i}>{s}</li>)}
+          </ul>
+        </div>
+
+        <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="points">Points</Label>
-            <Input
-              id="points"
-              placeholder="lat,lng;lat,lng;..."
-              className="col-span-3"
-              disabled={isLoading}
-              value={rawPoints}
-              onChange={(e) => dispatch(flightsActions.setCreateFlightPoints(e.target.value))}
-            />
+            <Input id="points" placeholder="lat,lng;..." disabled={isLoading}
+              className="col-span-3" value={rawPoints}
+              onChange={e=>dispatch(flightsActions.setCreateFlightPoints(e.target.value))} />
           </div>
 
-          {/* Панель сырых WS-логов */}
-          <div className="bg-black text-white text-xs p-2 max-h-24 overflow-auto rounded">
-            {rawWsLogs.length === 0 ? (
-              <div>No WS data yet</div>
-            ) : (
-              rawWsLogs.map((msg, i) => <div key={i}>{msg}</div>)
+          <div className="h-[600px] w-full">
+            {isOpen && (
+              <MapContainer key={String(isOpen)} center={[51.1694,71.4491]} zoom={10}
+                whenCreated={map=>mapRef.current=map}
+                style={{height:'100%',width:'100%'}} scrollWheelZoom={true}>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                {/* zones */}
+                {NO_FLY_ZONES.map(z=>(
+                  <Circle key={z.id} center={z.center} radius={z.radius}
+                    pathOptions={{color:'red',fillOpacity:0.1,weight:2}} />
+                ))}
+
+                {/* flight tracks + markers */}
+                {Array.from(flightsMap.entries()).map(([fid,msgs],idx)=>(
+                  <React.Fragment key={fid}>
+                    <Polyline positions={msgs.map(m=>[m.latitude,m.longitude] as [number,number])}
+                      pathOptions={{color:colors[idx%colors.length],weight:3}} />
+                    {/* latest marker */}
+                    {msgs.length>0 && (()=>{
+                      const latest=msgs[msgs.length-1];
+                      const ts=latest.receivedAt.toISOString().replace('T',' ').split('.')[0];
+                      const violation=NO_FLY_ZONES.find(z=>haversine([latest.latitude,latest.longitude],z.center)<=z.radius);
+                      return (
+                        <Marker position={[latest.latitude, latest.longitude] as [number,number]}>  
+                          <Tooltip permanent direction="right">
+                            <div className="text-xs">
+                              <div>Time: {ts}</div>
+                              <div>Flight ID: {latest.flight_id}</div>
+                              <div>Drone ID: {latest.drone_id}</div>
+                              <div>Alt: {latest.altitude} m</div>
+                              <div>Speed: {latest.speed} km/h</div>
+                              {violation && <div className="text-red-600">🚨 Violation: {violation.name}</div>}
+                            </div>
+                          </Tooltip>
+                        </Marker>
+                      );
+                    })()}
+                  </React.Fragment>
+                ))}
+
+              </MapContainer>
             )}
-          </div>
-
-          {/* Логи телеметрии */}
-          <div className="bg-gray-50 border rounded p-3 max-h-32 overflow-auto">
-            <h4 className="font-medium mb-1">Received Coordinates:</h4>
-            <ul className="list-disc list-inside text-sm">
-              {telemetryPoints.length === 0 ? (
-                <li className="italic text-gray-500">No data yet</li>
-              ) : (
-                telemetryPoints.map((pos, idx) => (
-                  <li key={idx}>{pos[0].toFixed(6)}, {pos[1].toFixed(6)}</li>
-                ))
-              )}
-            </ul>
-          </div>
-
-          {/* Карта */}
-          <div className="w-full" style={{ height: `${mapHeight}px` }}>
-            <MapContainer
-              center={route.length ? route[0] : defaultCenter}
-              zoom={route.length ? routeZoom : defaultZoom}
-              whenCreated={(map) => (mapRef.current = map)}
-              style={{ width: '100%', height: '100%' }}
-              scrollWheelZoom={false}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              {route.length > 0 && <Polyline positions={route} />}
-              {route.length > 0 && (
-                <>
-                  <Marker position={route[0]} />
-                  <Marker position={route[route.length - 1]} />
-                </>
-              )}
-              {telemetryPoints.map((pos, i) => (
-                <CircleMarker key={i} center={pos} radius={6} />
-              ))}
-            </MapContainer>
           </div>
         </div>
 
         <DialogFooter>
-          <Button
-            disabled={!isValid || isLoading}
-            onClick={() => dispatch(createFlightAsync())}
-          >
-            {isLoading && <Loader2 className="w-5 h-5 animate-spin mr-2" />}Add
+          <Button disabled={!isValid||isLoading} onClick={()=>dispatch(createFlightAsync())}>
+            {isLoading&&<Loader2 className="w-5 h-5 animate-spin mr-2"/>}Start Tracking
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -23,8 +23,8 @@ def generate_route(route):
             intermediate_lon = lon1 + (lon2 - lon1) * t
 
             # Добавляем небольшое отклонение (джиттер)
-            jitter_lat = random.uniform(-0.00005, 0.00005)
-            jitter_lon = random.uniform(-0.00005, 0.00005)
+            jitter_lat = random.uniform(-0.0005, 0.0005)
+            jitter_lon = random.uniform(-0.0005, 0.0005)
 
             detailed_route.append((intermediate_lat + jitter_lat, intermediate_lon + jitter_lon))
 
@@ -32,6 +32,14 @@ def generate_route(route):
     return detailed_route
 
 async def send_telemetry(websocket, drone_id, route, flight_id):
+    start_data = {
+        'type': 'start',
+        'drone_id': drone_id,
+        'flight_id': flight_id,
+        'timestamp': time.time()
+    }
+    await websocket.send(json.dumps(start_data))
+    print(f"✅ Drone {drone_id} sent START: {start_data}")
     for lat, lon in route:
         if random.random() < 0.1:  # 10% шанс потерять связь
             print(f"🛑 Drone {drone_id} LOST CONNECTION (skipping point). Sleeping 5s...")

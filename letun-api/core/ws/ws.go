@@ -108,7 +108,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			if err := json.Unmarshal(msg, &m); err == nil {
 				log.Printf("▶️ Дрон %d стартовал, маршрут: %v", m.DroneID, m.Route)
 			}
-
+			wsclient.SendMessage(m)
 			go flightsService.Start(m.FlightID)
 
 		case "telemetry":
@@ -144,7 +144,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			} else {
 				log.Printf("❌ stop unmarshal error: %v", err)
 			}
-
+			wsclient.SendMessage(s)
 			go flightsService.Finish(s.FlightID)
 		}
 	}
