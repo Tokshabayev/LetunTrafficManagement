@@ -5,7 +5,7 @@ import random
 import time
 
 # Конфигурация
-ws_server_url = 'ws://localhost:8080/'
+ws_server_url = "ws://localhost:8080/ws"
 
 # Тестовые данные для локальной проверки
 test_commands = [
@@ -27,30 +27,38 @@ def generate_route(route):
     detailed_route.append(route[-1])
     return detailed_route
 
-async def send_telemetry(websocket, drone_id, route):
+async def send_telemetry(websocket, drone_id, route, flight_id):
+    # --- отправляем команду START ---
+
+    # --- отправляем телеметрию по маршруту ---
     for lat, lon in route:
         telemetry_data = {
             'type': 'telemetry',
-            'drone_id': drone_id,
+            'flight_id' : flight_id,
             'latitude': lat,
             'longitude': lon,
             'altitude': random.randint(100, 120),
             'speed': random.randint(10, 20),
             'timestamp': time.time()
         }
-
         await websocket.send(json.dumps(telemetry_data))
-        print(f"Drone {drone_id} sent data: {telemetry_data}")
+        print(f"Drone {drone_id} sent TELEMETRY: {telemetry_data}")
 
-        if random.random() < 0.2:
-            print(f"Drone {drone_id} connection lost! Emulating no data transfer for 5 seconds...")
+        # эмуляция потери связи
+        if random.random() < 0.1:
+            print(f"Drone {drone_id} connection lost! Sleeping 5s...")
             await asyncio.sleep(5)
 
         await asyncio.sleep(1)
 
-    stop_data = {'type': 'stop', 'drone_id': drone_id, 'timestamp': time.time()}
+    # --- отправляем команду STOP ---
+    stop_data = {
+        'type': 'stop',
+        'drone_id': drone_id,
+        'timestamp': time.time()
+    }
     await websocket.send(json.dumps(stop_data))
-    print(f"Drone {drone_id} завершил передачу.")
+    print(f"Drone {drone_id} sent STOP: {stop_data}")
 
 async def listen_with_retry():
     while True:
@@ -65,14 +73,19 @@ async def listen_for_commands():
         while True:
             message = await websocket.recv()
             command = json.loads(message)
-
+            print(command)
+            # если сервер прислал команду START — запускаем отправку телеметрии
             if command.get('type') == 'start':
                 drone_id = command['drone_id']
                 route = command['route']
+                flight_id = command['flight_id']
                 detailed_route = generate_route(route)
-                asyncio.create_task(send_telemetry(websocket, drone_id, detailed_route))
+                asyncio.create_task(send_telemetry(websocket, drone_id, detailed_route, flight_id))
+            # если прислал STOP — можно логировать на клиенте
+            elif command.get('type') == 'stop':
+                print(f"Received STOP for drone {command['drone_id']}")
 
-# Для локального тестирования
+# Для локального тестирования (без сервера команд)
 async def local_test():
     async with websockets.connect(ws_server_url) as websocket:
         tasks = []
@@ -83,7 +96,8 @@ async def local_test():
         await asyncio.gather(*tasks)
 
 if __name__ == '__main__':
-    print("Ожидание команд...")
+    print("Ожидание команд или запуск локального теста...")
+    # чтобы слушать сервер команд:
     asyncio.run(listen_with_retry())
-    # Для локального тестирования используйте:
+    # или для самостоятельного теста маршрутов:
     # asyncio.run(local_test())
