@@ -3,6 +3,8 @@ import asyncio
 import websockets
 import base64
 
+# [RTSP Эмулятор] --> [FFmpeg] --> [HLS (.m3u8 + .ts)] --> [Frontend через hls.js]
+
 RTSP_URL = "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov" # захват видеопотока RTSP (камера на дроне)
 WS_URL = "ws://localhost:8080/ws"  # адрес Go-сервера, куда будет отправляться видеопоток
 
