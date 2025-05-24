@@ -10,11 +10,19 @@ type FlightsRepo struct{}
 func (r *FlightsRepo) GetFlightById(id int) (*models.Flight, error) {
 	var flight models.Flight
 	err := db.DB.Where("id = ?", id).
-		Joins("Join drones on drones.id = flights.drone_id").
-		Joins("Join users on users.id = flights.user_id").
+		Preload("User").
+		Preload("Drone").
 		First(&flight).Error
 
 	return &flight, err
+}
+
+func (r *FlightsRepo) GetFirstActiveDrone() (*models.Drone, error) {
+	var drone models.Drone
+	err := db.DB.Where("is_active = ?", true).
+		Where("is_flying = ?", false).
+		First(&drone).Error
+	return &drone, err
 }
 
 func (r *FlightsRepo) Create(flight *models.Flight) error {

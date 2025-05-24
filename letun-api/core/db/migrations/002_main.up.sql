@@ -1,8 +1,8 @@
 CREATE TABLE drones (
     id SERIAL PRIMARY KEY,
     model VARCHAR(255) NOT NULL,
-    weight_limit INT NOT NULL,
-    battery INT NOT NULL,
+    weight_limit VARCHAR(255) NOT NULL,
+    battery VARCHAR(255) NOT NULL,
     is_active BOOLEAN NOT NULL,
     is_flying BOOLEAN NOT NULL
 );
@@ -12,6 +12,7 @@ CREATE TABLE flights (
     drone_id INT NOT NULL,
     user_id INT NOT NULL,
     status VARCHAR(255) NOT NULL,
+    points VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_drone FOREIGN KEY (drone_id) REFERENCES drones(id),

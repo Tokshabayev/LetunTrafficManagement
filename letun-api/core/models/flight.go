@@ -9,6 +9,7 @@ type Flight struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	DroneId   int       `json:"drone_id"`
 	UserId    int       `json:"user_id"`
-	Drone     Drone     `json:"drone"`
-	User      User      `json:"user"`
+	Points    string    `json:"points"`
+	User      User      `gorm:"foreignKey:UserId"`
+	Drone     Drone     `gorm:"foreignKey:DroneId"`
 }

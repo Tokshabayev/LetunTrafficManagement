@@ -5,6 +5,7 @@ import (
 	"letun-api/core/dtos/drones"
 	"letun-api/core/dtos/flights"
 	"letun-api/core/dtos/users"
+	"letun-api/core/middlewares"
 	"letun-api/core/models"
 	"letun-api/core/repos"
 	"letun-api/core/ws"
@@ -87,19 +88,33 @@ func (h *FlightsHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	flightsRepo := repos.FlightsRepo{}
 
-	err := flightsRepo.Create(&models.Flight{
-		DroneId:   flightDto.DroneId,
-		UserId:    flightDto.UserId,
-		Status:    "pending",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	})
+	userId, ok := middlewares.GetUserIdFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Invalid request data", http.StatusBadRequest)
+		return
+	}
+
+	drone, err := flightsRepo.GetFirstActiveDrone()
 	if err != nil {
 		http.Error(w, "Invalid request data", http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	err = flightsRepo.Create(&models.Flight{
+		DroneId:   drone.Id,
+		UserId:    userId,
+		Status:    "pending",
+		Points:    flightDto.Points,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+
+	if err != nil {
+		http.Error(w, "Invalid request data", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *FlightsHandler) Accept(w http.ResponseWriter, r *http.Request) {
@@ -130,11 +145,15 @@ func (h *FlightsHandler) Accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var points [][2]float64
+
+	json.Unmarshal([]byte(flight.Points), &points)
+
 	ws.SendMessage(ws.StartMsg{
 		Type:      "start",
 		FlightID:  flightId,
 		DroneID:   flight.Drone.Id,
-		Route:     [][2]float64{{51.1284, 71.4306}, {51.1300, 71.4320}, {51.1320, 71.4340}},
+		Route:     points,
 		Timestamp: time.Now().Unix(),
 	})
 
@@ -277,6 +296,7 @@ func infoDtoFromFlight(flight *models.Flight) flights.FlightInfoDto {
 		Drone:     droneInfo,
 		User:      userInfo,
 		Status:    flight.Status,
+		Points:    flight.Points,
 		CreatedAt: flight.CreatedAt,
 		UpdatedAt: flight.UpdatedAt,
 	}

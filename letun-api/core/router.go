@@ -26,11 +26,13 @@ func InitRouter() *chi.Mux {
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	r.HandleFunc("/ws", ws.HandleConnections)
-	ws.HandleBroadcast()
+	go ws.HandleBroadcast()
 
 	routes.InitAuthRoute(r)
 	routes.InitUserRoute(r)
 	routes.InitInvitesRoute(r)
+	routes.InitFlightsRoute(r)
+	routes.InitDronesRoute(r)
 
 	return r
 }

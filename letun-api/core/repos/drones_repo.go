@@ -45,7 +45,7 @@ func (r *DronesRepo) Update(drone *models.Drone) error {
 	return db.DB.Save(drone).Error
 }
 
-func (r *DronesRepo) List(filter string, page int, take int) ([]models.Drone, int, error) {
+func (r *DronesRepo) List(filter string, page int, take int, userId *int) ([]models.Drone, int, error) {
 	var dronesList []models.Drone
 	var totalCount int64
 
@@ -64,6 +64,10 @@ func (r *DronesRepo) List(filter string, page int, take int) ([]models.Drone, in
 		page = 1
 	}
 	offset := (page - 1) * take
+
+	if userId != nil {
+		query = query.Where("user_id = ?", userId)
+	}
 
 	if err := query.
 		Limit(take).

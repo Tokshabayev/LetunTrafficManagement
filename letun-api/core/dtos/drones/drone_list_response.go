@@ -1,7 +1,7 @@
 package drones
 
 type DronesListResponseDto struct {
-	Drone   []DroneInfoDto `json:"drone"`
+	Drones  []DroneInfoDto `json:"drones"`
 	MaxPage int            `json:"maxPage"`
 	Total   int            `json:"total"`
 }

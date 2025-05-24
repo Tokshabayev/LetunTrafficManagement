@@ -63,7 +63,7 @@ func (h *DronesHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dronesRepo := repos.DronesRepo{}
-	dronesList, maxCount, err := dronesRepo.List(filter, page, take)
+	dronesList, maxCount, err := dronesRepo.List(filter, page, take, nil)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -84,7 +84,7 @@ func (h *DronesHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := drones.DronesListResponseDto{
-		Drone:   droneDtos,
+		Drones:  droneDtos,
 		Total:   maxCount,
 		MaxPage: (maxCount + take - 1) / take,
 	}

@@ -11,6 +11,7 @@ type FlightInfoDto struct {
 	Drone     drones.DroneInfoDto `json:"drone"`
 	User      users.UserInfoDto   `json:"user"`
 	Status    string              `json:"status"`
+	Points    string              `json:"points"`
 	CreatedAt time.Time           `json:"createdAt"`
 	UpdatedAt time.Time           `json:"updatedAt"`
 }
