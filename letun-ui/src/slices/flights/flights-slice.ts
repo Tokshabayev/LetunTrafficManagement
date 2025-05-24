@@ -14,6 +14,7 @@ const initialFlightsState: FlightsState = <FlightsState>{
     total: 0,
     maxPage: 0,
     error: undefined,
+    trackFlightOpen: false,
     createFlight: {
         points: "",
         isValid: false,
@@ -61,6 +62,10 @@ export const flightsSlice = createSlice({
 
         setCreateFlightOpen: (state, { payload }: PayloadAction<boolean>) => {
             state.createFlight.isOpen = payload;
+        },
+
+        setTrackFlightOpen: (state, { payload }: PayloadAction<boolean>) => {
+            state.trackFlightOpen = payload;
         },
     },
     extraReducers: (builder) => {

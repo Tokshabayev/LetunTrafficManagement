@@ -9,7 +9,7 @@ export interface FlightsState {
   total: number;
   maxPage: number;
   error: string | undefined;
-
+  trackFlightOpen: boolean;
   createFlight: CreateFlight;
 }
 

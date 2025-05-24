@@ -71,6 +71,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { cn } from "@/src/core/helpers/utils";
 import { acceptFlightAsync, flightsActions, rejectFlightAsync, uploadFlightsAsync } from "@/src/slices/flights/flights-slice";
 import CreateFlightButton from "./create-flight-button";
+import FlightTrack from "./flight-track";
 
 export const schema = z.object({
     id: z.number(),
@@ -233,6 +234,7 @@ export function FlightsTable() {
                         {row.original.status == "pending" && (
                             <DropdownMenuItem onClick={() => dispatch(rejectFlightAsync(row.original.id))}>Reject</DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => dispatch(flightsActions.setTrackFlightOpen(true))}>Track</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -534,6 +536,9 @@ export function FlightsTable() {
             >
                 <div className="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
             </TabsContent>
+
+            <FlightTrack />
         </Tabs>
+
     );
 }
