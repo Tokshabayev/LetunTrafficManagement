@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from "@/src/components/ui/sidebar";
 import { AppSidebar } from "@/src/components/nav/app-sidebar";
 
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import { AppProvider } from "./app-provider";
 import { Toaster } from "sonner";
 

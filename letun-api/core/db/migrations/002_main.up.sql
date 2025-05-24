@@ -29,11 +29,4 @@ CREATE TABLE telemetries (
     timestamp FLOAT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_flight FOREIGN KEY (flight_id) REFERENCES flights(id)
-
-CREATE TABLE public.no_fly_zones (
-    id         SERIAL PRIMARY KEY,
-    name       TEXT NOT NULL,
-    polygon    geometry(Polygon,4326) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
-);
 );
