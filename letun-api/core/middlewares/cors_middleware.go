@@ -12,7 +12,7 @@ import (
 var CorsMiddleware = func(h http.Handler) http.Handler {
 	corsUrls := config.GetVal("CORS_URLS")
 	if corsUrls == "" {
-		corsUrls = "http://*;https://*"
+		corsUrls = "http://*;https://*;ws://*"
 	}
 	corsUrlsArray := strings.Split(corsUrls, ";")
 
