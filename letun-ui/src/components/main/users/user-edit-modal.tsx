@@ -154,8 +154,8 @@ export default function UserEditModal() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Roles</SelectLabel>
-                    <SelectItem value="client">Client</SelectItem>
-                    <SelectItem value="guide">Guide</SelectItem>
+                    <SelectItem value="pilot">Pilot</SelectItem>
+                    <SelectItem value="dispatcher">Dispatcher</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectGroup>
                 </SelectContent>
