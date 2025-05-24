@@ -5,6 +5,8 @@ import { usersSlice } from "./slices/users/users-slice";
 import { invitesSlice } from "./slices/invites/invites-slice";
 import { useDispatch } from "react-redux";
 import { inviteSlice } from "./slices/invite/invite-slice";
+import { dronesSlice } from "./slices/drones/drones-slice";
+import { flightsSlice } from "./slices/flights/flights-slice";
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +15,8 @@ export const store = configureStore({
     user: userSlice.reducer,
     users: usersSlice.reducer,
     invites: invitesSlice.reducer,
+    drones: dronesSlice.reducer,
+    flights: flightsSlice.reducer,
   },
 });
 

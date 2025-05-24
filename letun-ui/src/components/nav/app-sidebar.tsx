@@ -56,7 +56,11 @@ const data = {
       items: [
         {
           title: "Drones",
-          url: "#",
+          url: "/admin/drones",
+        },
+        {
+          title: "Flights",
+          url: "/admin/flights",
         },
       ],
     },

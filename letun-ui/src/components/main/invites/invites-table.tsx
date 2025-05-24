@@ -35,7 +35,6 @@ import {
   ColumnsIcon,
   RefreshCcw,
   MoreVerticalIcon,
-  PlusIcon,
   CheckCircle2Icon,
 } from "lucide-react";
 import { z } from "zod";
@@ -142,7 +141,7 @@ export function InvitesTable() {
         </Badge>
       ),
     },
-  
+
     {
       accessorKey: "createdAt",
       header: "Created at",
@@ -351,7 +350,7 @@ export function InvitesTable() {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <InviteUserButton/>
+          <InviteUserButton />
         </div>
       </div>
       <TabsContent
@@ -374,9 +373,9 @@ export function InvitesTable() {
                           {header.isPlaceholder
                             ? null
                             : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                         </TableHead>
                       );
                     })}
