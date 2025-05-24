@@ -7,6 +7,7 @@ import (
 	"letun-api/core/dtos/users"
 	"letun-api/core/models"
 	"letun-api/core/repos"
+	"letun-api/core/ws"
 	"net/http"
 	"strconv"
 	"time"
@@ -128,6 +129,14 @@ func (h *FlightsHandler) Accept(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request data", http.StatusBadRequest)
 		return
 	}
+
+	ws.SendMessage(ws.StartMsg{
+		Type:      "start",
+		FlightID:  flightId,
+		DroneID:   flight.Drone.Id,
+		Route:     [][2]float64{{51.1284, 71.4306}, {51.1300, 71.4320}, {51.1320, 71.4340}},
+		Timestamp: time.Now().Unix(),
+	})
 
 	w.WriteHeader(http.StatusOK)
 }

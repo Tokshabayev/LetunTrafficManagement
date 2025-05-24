@@ -26,6 +26,7 @@ func InitRouter() *chi.Mux {
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	r.HandleFunc("/ws", ws.HandleConnections)
+	ws.HandleBroadcast()
 
 	routes.InitAuthRoute(r)
 	routes.InitUserRoute(r)

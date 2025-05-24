@@ -2,14 +2,14 @@ package ws
 
 import (
 	"encoding/json"
-	"io"
 	"letun-api/core/models"
 	"letun-api/core/repos"
 	"letun-api/core/utils"
 	"log"
 	"net/http"
 	"sync"
-	"time"
+
+	"letun-api/core/services"
 
 	"github.com/gorilla/websocket"
 )
@@ -41,6 +41,7 @@ type StartMsg struct {
 
 type TelemetryMsg struct {
 	Type      string  `json:"type"`
+	FlightID  int     `json:"flight_id"`
 	DroneID   int     `json:"drone_id"`
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
@@ -51,8 +52,18 @@ type TelemetryMsg struct {
 // Timestamp – float64, чтобы принять дробный (от Python)
 type StopMsg struct {
 	Type      string  `json:"type"`
+	FlightID  int     `json:"flight_id"`
 	DroneID   int     `json:"drone_id"`
 	Timestamp float64 `json:"timestamp"`
+}
+
+func SendMessage(msg any) {
+	json, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("❌ JSON marshal error: %v", err)
+		return
+	}
+	Broadcast <- json
 }
 
 // HandleConnections — WS-эндпоинт
@@ -70,6 +81,8 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 
 	go writeMessages(client)
+
+	flightsService := services.FlightsService{}
 
 	for {
 		_, msg, err := wsConn.ReadMessage()
@@ -94,17 +107,19 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			if err := json.Unmarshal(msg, &m); err == nil {
 				log.Printf("▶️ Дрон %d стартовал, маршрут: %v", m.DroneID, m.Route)
 			}
-			Broadcast <- msg
+
+			go flightsService.Start(m.FlightID)
 
 		case "telemetry":
 			var t TelemetryMsg
 			if err := json.Unmarshal(msg, &t); err == nil {
 				utils.Logger().Printf("📡 [Drone %d] %.6f, %.6f — alt %dm, %dkm/h",
-					t.DroneID, t.Latitude, t.Longitude, t.Altitude, t.Speed,
+					t.FlightID, t.Latitude, t.Longitude, t.Altitude, t.Speed,
 				)
 
 				telemetryRepo := repos.TelemetryRepo{}
 				if err := telemetryRepo.Create(&models.Telemetry{
+					FlightId:  t.FlightID,
 					Latitude:  t.Latitude,
 					Longitude: t.Longitude,
 					Altitude:  t.Altitude,
@@ -118,9 +133,6 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 				// }
 			}
 
-			msg := "hello from drone"
-			Broadcast <- []byte(msg)
-
 		case "stop":
 			var s StopMsg
 			if err := json.Unmarshal(msg, &s); err == nil {
@@ -128,43 +140,10 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			} else {
 				log.Printf("❌ stop unmarshal error: %v", err)
 			}
-			Broadcast <- msg
 
-		default:
-			Broadcast <- msg
+			go flightsService.Finish(s.FlightID)
 		}
 	}
-}
-
-// HandleCommand — HTTP POST /command → ретрансляция в WS
-func HandleCommand(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-	var g GenericMsg
-	if err := json.Unmarshal(body, &g); err == nil {
-		switch g.Type {
-		case "start":
-			var m StartMsg
-			if err := json.Unmarshal(body, &m); err == nil {
-				m.Timestamp = time.Now().Unix()
-				log.Printf("▶️ [HTTP] Дрон %d стартовал, маршрут: %v", m.DroneID, m.Route)
-			}
-		case "stop":
-			var m StopMsg
-			if err := json.Unmarshal(body, &m); err == nil {
-				log.Printf("⏹ [HTTP] Дрон %d остановился", m.DroneID)
-			}
-		}
-	}
-	Broadcast <- body
-	w.Write([]byte("OK"))
 }
 
 // HandleBroadcast — рассылка всем подключённым WS-клиентам
