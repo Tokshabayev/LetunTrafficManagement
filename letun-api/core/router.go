@@ -4,6 +4,7 @@ import (
 	"letun-api/core/middlewares"
 	"letun-api/core/routes"
 	"letun-api/core/ws"
+	"letun-api/core/wsclient"
 
 	"github.com/go-chi/render"
 
@@ -26,7 +27,9 @@ func InitRouter() *chi.Mux {
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	r.HandleFunc("/ws", ws.HandleConnections)
+	r.HandleFunc("/wsclient", wsclient.HandleConnections)
 	go ws.HandleBroadcast()
+	go wsclient.HandleBroadcast()
 
 	routes.InitAuthRoute(r)
 	routes.InitUserRoute(r)

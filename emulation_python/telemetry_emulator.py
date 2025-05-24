@@ -4,7 +4,7 @@ import json
 import random
 import time
 
-ws_server_url = "ws://localhost:8080/ws"
+ws_server_url = "ws://localhost:8081/ws"
 
 test_commands = [
     {'drone_id': 1, 'route': [(51.1284, 71.4306), (51.1320, 71.4340)]},
@@ -55,6 +55,7 @@ async def send_telemetry(websocket, drone_id, route, flight_id):
     stop_data = {
         'type': 'stop',
         'drone_id': drone_id,
+        'flight_id': flight_id,
         'timestamp': time.time()
     }
     await websocket.send(json.dumps(stop_data))

@@ -19,8 +19,10 @@ func main() {
 	port := ":8080"
 	utils.Logger().Info().Msgf("Server started on https://local.api.letun%s", port)
 
-	err := http.ListenAndServeTLS(port, "certs/ca.pem", "certs/ca.key", r)
-	if err != nil {
-		utils.Logger().Fatal().Err(err).Msg("Failed to start HTTPS server")
-	}
+	go http.ListenAndServeTLS(port, "certs/ca.pem", "certs/ca.key", r)
+
+	port2 := ":8081"
+	utils.Logger().Info().Msgf("Server started on https://local.api.letun%s", port2)
+
+	http.ListenAndServe(port2, r)
 }

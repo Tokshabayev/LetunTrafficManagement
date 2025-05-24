@@ -19,7 +19,7 @@ CREATE TABLE flights (
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
-CREATE TABLE telemetry (
+CREATE TABLE telemetries (
     id SERIAL PRIMARY KEY,
     flight_id INT NOT NULL,
     latitude FLOAT NOT NULL,
@@ -27,5 +27,13 @@ CREATE TABLE telemetry (
     altitude FLOAT NOT NULL,
     speed FLOAT NOT NULL,
     timestamp FLOAT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_flight FOREIGN KEY (flight_id) REFERENCES flights(id)
+
+CREATE TABLE public.no_fly_zones (
+    id         SERIAL PRIMARY KEY,
+    name       TEXT NOT NULL,
+    polygon    geometry(Polygon,4326) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 );

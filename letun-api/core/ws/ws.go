@@ -5,6 +5,7 @@ import (
 	"letun-api/core/models"
 	"letun-api/core/repos"
 	"letun-api/core/utils"
+	"letun-api/core/wsclient"
 	"log"
 	"net/http"
 	"sync"
@@ -127,6 +128,9 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 				}); err == nil {
 					log.Printf("✅ Телеметрия сохранена: drone_id=%d", t.DroneID)
 				}
+
+				wsclient.SendMessage(t)
+
 				// zones, _ := db.CheckZoneViolation(t.Longitude, t.Latitude)
 				// for _, z := range zones {
 				// 	log.Printf("🚨 Дрон %d нарушил зону: %s", t.DroneID, z.Name)
