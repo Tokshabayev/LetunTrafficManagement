@@ -83,7 +83,7 @@ export function CreateDroneButton() {
                     </div>
 
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="weightLimit">Battery Limit</Label>
+                        <Label htmlFor="battery">Battery Limit</Label>
                         <Input
                             id="battery"
                             required
@@ -91,7 +91,7 @@ export function CreateDroneButton() {
                             className="col-span-3"
                             placeholder="100"
                             onChange={(e) =>
-                                dispatch(dronesActions.setCreateDroneWeightLimit(e.target.value))
+                                dispatch(dronesActions.setCreateDroneBattery(e.target.value))
                             }
                         />
                     </div>

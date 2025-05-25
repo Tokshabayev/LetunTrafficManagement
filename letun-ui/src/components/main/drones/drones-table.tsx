@@ -137,6 +137,15 @@ export function DronesTable() {
             ),
         },
         {
+            accessorKey: "batteryCapacity",
+            header: "Battery Capacity",
+            cell: ({ row }) => (
+                <Badge variant="outline" className="px-1.5 text-muted-foreground">
+                    {row.original.batteryCapacity}
+                </Badge>
+            ),
+        },
+        {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => {
@@ -226,7 +235,7 @@ export function DronesTable() {
                     id: drone.id,
                     model: drone.model,
                     weightLimit: drone.weightLimit,
-                    batteryCapacity: drone.batteryCapacity,
+                    batteryCapacity: drone.battery,
                     status: drone.isFlying ? "flying" : drone.isActive ? "active" : "blocked",
                 };
             }),
