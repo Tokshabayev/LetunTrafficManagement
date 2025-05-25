@@ -109,7 +109,7 @@ export function FlightTrack() {
 
   // WebSocket effect
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8081/wsclient');
+    const ws = new WebSocket('ws://localhost:8080/wsclient');
     ws.onopen = () => console.log('WS connected');
     ws.onmessage = ({ data }) => {
       try {
@@ -137,18 +137,11 @@ export function FlightTrack() {
         else if (msg.type === 'lost_connection') {
           let timestamp = msg.timestamp;
           if (typeof timestamp === 'string') timestamp = parseFloat(timestamp);
-          if (!timestamp || isNaN(timestamp)) timestamp = Date.now() / 1000;
-          const dt = new Date(timestamp * 1000);
-          // Локальное время Казахстана (Asia/Almaty)
-          const ts = dt.toLocaleString('ru-RU', {
-            timeZone: 'Asia/Almaty',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }).replace(',', '');
+          // Проверка, в секундах или миллисекундах
+          const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+          const dt = new Date(ms);
+          const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
+            `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
           setStatusLog(prev => [...prev, `⚠️ Drone ${msg.drone_id} lost connection flight ${msg.flight_id} at ${ts}`]);
         }
         else if (msg.type === 'telemetry') {
