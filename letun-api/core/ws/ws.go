@@ -25,10 +25,11 @@ var (
 )
 
 type DroneStatus struct {
-	DroneID           int       `json:"drone_id"`
-	FlightID          int       `json:"flight_id"`
-	LastTelemetryTime time.Time `json:"last_telemetry_time"`
-	Active            bool      `json:"active"`
+	DroneID            int       `json:"drone_id"`
+	FlightID           int       `json:"flight_id"`
+	LastTelemetryTime  time.Time `json:"last_telemetry_time"`
+	LostConnectionSent bool      `json:"lost_connection_sent"`
+	Active             bool      `json:"active"`
 }
 
 type Client struct {
@@ -121,10 +122,11 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			}
 			wsclient.SendMessage(m)
 			drones[m.DroneID] = DroneStatus{
-				DroneID:           m.DroneID,
-				FlightID:          m.FlightID,
-				LastTelemetryTime: time.Now(),
-				Active:            true,
+				DroneID:            m.DroneID,
+				FlightID:           m.FlightID,
+				LastTelemetryTime:  time.Now(),
+				LostConnectionSent: false,
+				Active:             true,
 			}
 			go flightsService.Start(m.FlightID)
 
@@ -184,7 +186,7 @@ func startDronesDispatch() {
 	for {
 		time.Sleep(500 * time.Millisecond)
 		for droneID, status := range drones {
-			if status.Active {
+			if status.Active && !status.LostConnectionSent {
 				lastTelemetryTime := status.LastTelemetryTime
 				if time.Since(lastTelemetryTime) > 2*time.Second {
 					log.Printf("🚨 Дрон %d не отправляет телеметрию более 2 секунд", droneID)
@@ -194,6 +196,8 @@ func startDronesDispatch() {
 						DroneID:   droneID,
 						Timestamp: float64(time.Now().UnixMilli()),
 					})
+					status.LostConnectionSent = true
+					drones[droneID] = status
 				}
 			}
 		}
