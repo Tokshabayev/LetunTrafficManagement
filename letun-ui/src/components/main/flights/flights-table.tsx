@@ -234,7 +234,10 @@ export function FlightsTable() {
                         {row.original.status == "pending" && (
                             <DropdownMenuItem onClick={() => dispatch(rejectFlightAsync(row.original.id))}>Reject</DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => dispatch(flightsActions.setTrackFlightOpen(true))}>Track</DropdownMenuItem>
+                        {row.original.status != "pending" && row.original.status != "rejected" && row.original.status != "finished" && (
+                            <DropdownMenuItem onClick={() => dispatch(flightsActions.setTrackFlightOpen(true))}>Track</DropdownMenuItem>
+                        )}
+
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -338,7 +341,7 @@ export function FlightsTable() {
             <div className="flex items-center justify-between px-4 lg:px-6">
                 <div className="flex gap-2">
                     <Input
-                        placeholder="Filter invites..."
+                        placeholder="Filter flights..."
                         onChange={(event) => setFilter(event.target.value)}
                         className="max-w-sm"
                     />

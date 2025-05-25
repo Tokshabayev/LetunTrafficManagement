@@ -124,7 +124,7 @@ export function CreateFlightButton() {
           <PlusIcon /> Add flight
         </Button>
       </DialogTrigger>
-      <DialogContent className="!max-w-none w-[1700px] max-h-[80vh] overflow-auto">
+      <DialogContent className="!max-w-none w-[80%] overflow-auto">
         <DialogHeader>
           <DialogTitle>Define Route by Clicks</DialogTitle>
           <DialogDescription className={localError ? 'text-destructive' : ''}>
@@ -132,7 +132,7 @@ export function CreateFlightButton() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="w-full h-[600px]">
+        <div className="w-full h-[500px]">
           <MapContainer
             center={[51.1694, 71.4491]}
             zoom={10}

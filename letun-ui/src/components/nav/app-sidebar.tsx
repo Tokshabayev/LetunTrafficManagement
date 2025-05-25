@@ -67,8 +67,8 @@ const data = {
   ],
   myLetun: [
     {
-      name: "Missions",
-      url: "/missions",
+      name: "Flights",
+      url: "/flights",
       icon: Map,
     },
   ],

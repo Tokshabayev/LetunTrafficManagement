@@ -23,11 +23,11 @@ import 'leaflet/dist/leaflet.css';
 
 // React-Leaflet components (SSR disabled)
 const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
-const TileLayer   = dynamic(() => import('react-leaflet').then(m => m.TileLayer),   { ssr: false });
-const Polyline    = dynamic(() => import('react-leaflet').then(m => m.Polyline),    { ssr: false });
-const Marker      = dynamic(() => import('react-leaflet').then(m => m.Marker),      { ssr: false });
-const Circle      = dynamic(() => import('react-leaflet').then(m => m.Circle),      { ssr: false });
-const Tooltip     = dynamic(() => import('react-leaflet').then(m => m.Tooltip),     { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
+const Polyline = dynamic(() => import('react-leaflet').then(m => m.Polyline), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(m => m.Marker), { ssr: false });
+const Circle = dynamic(() => import('react-leaflet').then(m => m.Circle), { ssr: false });
+const Tooltip = dynamic(() => import('react-leaflet').then(m => m.Tooltip), { ssr: false });
 
 // Message types from WebSocket
 interface StartMsg {
@@ -60,7 +60,7 @@ interface TelemetryEntry extends TelemetryMsg {
 
 // Hardcoded no-fly zones
 const NO_FLY_ZONES = [
-  { id: 1, name: 'Ak Orda Area',        center: [51.1258334, 71.4466667] as [number, number], radius: 5000 },
+  { id: 1, name: 'Ak Orda Area', center: [51.1258334, 71.4466667] as [number, number], radius: 5000 },
   { id: 2, name: 'Astana Airport Area', center: [51.0313889, 71.4633333] as [number, number], radius: 5000 },
 ];
 
@@ -93,9 +93,9 @@ export function FlightTrack() {
     const R = 6371000;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-    const sinDlat = Math.sin(dLat/2), sinDlon = Math.sin(dLon/2);
-    const val = sinDlat*sinDlat + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*sinDlon*sinDlon;
-    return R * 2 * Math.atan2(Math.sqrt(val), Math.sqrt(1-val));
+    const sinDlat = Math.sin(dLat / 2), sinDlon = Math.sin(dLon / 2);
+    const val = sinDlat * sinDlat + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * sinDlon * sinDlon;
+    return R * 2 * Math.atan2(Math.sqrt(val), Math.sqrt(1 - val));
   };
 
   // WebSocket effect
@@ -112,8 +112,8 @@ export function FlightTrack() {
           // Проверка, в секундах или миллисекундах
           const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
           const dt = new Date(ms);
-          const ts = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ` +
-                     `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
+          const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
+            `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
           setStatusLog(prev => [...prev, `🚀 Drone ${msg.drone_id} started flight ${msg.flight_id} at ${ts}`]);
         }
         else if (msg.type === 'stop') {
@@ -121,15 +121,15 @@ export function FlightTrack() {
           if (typeof timestamp === 'string') timestamp = parseFloat(timestamp);
           const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
           const dt = new Date(ms);
-          const ts = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ` +
-                     `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
+          const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
+            `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
           setStatusLog(prev => [...prev, `🛑 Drone ${msg.drone_id} stopped flight ${msg.flight_id} at ${ts}`]);
         }
         else if (msg.type === 'telemetry') {
           const pt: [number, number] = [msg.latitude, msg.longitude];
           NO_FLY_ZONES.forEach(zone => {
             if (haversine(pt, zone.center) <= zone.radius) {
-              const vst = new Date().toISOString().replace('T',' ').split('.')[0];
+              const vst = new Date().toISOString().replace('T', ' ').split('.')[0];
               setStatusLog(prev => [...prev, `⚠️ Drone ${msg.drone_id} entered zone '${zone.name}' at ${vst}`]);
             }
           });
@@ -137,7 +137,7 @@ export function FlightTrack() {
           setTelemetry(prev => [...prev, entry]);
           mapRef.current?.setView([entry.latitude, entry.longitude], 13);
         }
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     };
     ws.onerror = e => console.error('WS error', e);
     return () => ws.close();
@@ -147,22 +147,22 @@ export function FlightTrack() {
   const flightsMap = React.useMemo(() => {
     const m = new Map<number, TelemetryEntry[]>();
     telemetry.forEach(e => {
-      const arr = m.get(e.flight_id)||[];
+      const arr = m.get(e.flight_id) || [];
       arr.push(e);
       m.set(e.flight_id, arr);
     });
     return m;
   }, [telemetry]);
 
-  const colors = ['blue','green','orange','purple','darkred','darkblue'];
+  const colors = ['blue', 'green', 'orange', 'purple', 'darkred', 'darkblue'];
 
   return (
     <Dialog open={isOpen} onOpenChange={open => dispatch(flightsActions.setTrackFlightOpen(open))}>
-      <DialogContent className="!max-w-none w-[1700px] max-h-[80vh] overflow-auto">
+      <DialogContent className="!max-w-none w-[80%] max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Flight Tracking</DialogTitle>
-          <DialogDescription className={hasError?'text-destructive':''}>
-            {hasError?createError:'Real-time telemetry & zones'}
+          <DialogDescription className={hasError ? 'text-destructive' : ''}>
+            {hasError ? createError : 'Real-time telemetry & zones'}
           </DialogDescription>
         </DialogHeader>
 
@@ -170,7 +170,7 @@ export function FlightTrack() {
         <div className="mb-4">
           <strong>Status log:</strong>
           <ul className="list-disc list-inside text-sm max-h-24 overflow-auto">
-            {statusLog.map((s,i)=><li key={i}>{s}</li>)}
+            {statusLog.map((s, i) => <li key={i}>{s}</li>)}
           </ul>
         </div>
 
@@ -179,34 +179,34 @@ export function FlightTrack() {
             <Label htmlFor="points">Points</Label>
             <Input id="points" placeholder="lat,lng;..." disabled={isLoading}
               className="col-span-3" value={rawPoints}
-              onChange={e=>dispatch(flightsActions.setCreateFlightPoints(e.target.value))} />
+              onChange={e => dispatch(flightsActions.setCreateFlightPoints(e.target.value))} />
           </div>
 
           <div className="h-[600px] w-full">
             {isOpen && (
-              <MapContainer key={String(isOpen)} center={[51.1694,71.4491]} zoom={10}
-                whenCreated={map=>mapRef.current=map}
-                style={{height:'100%',width:'100%'}} scrollWheelZoom={true}>
+              <MapContainer key={String(isOpen)} center={[51.1694, 71.4491]} zoom={10}
+                whenCreated={map => mapRef.current = map}
+                style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
                 {/* zones */}
-                {NO_FLY_ZONES.map(z=>(
+                {NO_FLY_ZONES.map(z => (
                   <Circle key={z.id} center={z.center} radius={z.radius}
-                    pathOptions={{color:'red',fillOpacity:0.1,weight:2}} />
+                    pathOptions={{ color: 'red', fillOpacity: 0.1, weight: 2 }} />
                 ))}
 
                 {/* flight tracks + markers */}
-                {Array.from(flightsMap.entries()).map(([fid,msgs],idx)=>(
+                {Array.from(flightsMap.entries()).map(([fid, msgs], idx) => (
                   <React.Fragment key={fid}>
-                    <Polyline positions={msgs.map(m=>[m.latitude,m.longitude] as [number,number])}
-                      pathOptions={{color:colors[idx%colors.length],weight:3}} />
+                    <Polyline positions={msgs.map(m => [m.latitude, m.longitude] as [number, number])}
+                      pathOptions={{ color: colors[idx % colors.length], weight: 3 }} />
                     {/* latest marker */}
-                    {msgs.length>0 && (()=>{
-                      const latest=msgs[msgs.length-1];
-                      const ts=latest.receivedAt.toISOString().replace('T',' ').split('.')[0];
-                      const violation=NO_FLY_ZONES.find(z=>haversine([latest.latitude,latest.longitude],z.center)<=z.radius);
+                    {msgs.length > 0 && (() => {
+                      const latest = msgs[msgs.length - 1];
+                      const ts = latest.receivedAt.toISOString().replace('T', ' ').split('.')[0];
+                      const violation = NO_FLY_ZONES.find(z => haversine([latest.latitude, latest.longitude], z.center) <= z.radius);
                       return (
-                        <Marker position={[latest.latitude, latest.longitude] as [number,number]}>  
+                        <Marker position={[latest.latitude, latest.longitude] as [number, number]}>
                           <Tooltip permanent direction="right">
                             <div className="text-xs">
                               <div>Time: {ts}</div>
@@ -229,8 +229,8 @@ export function FlightTrack() {
         </div>
 
         <DialogFooter>
-          <Button disabled={!isValid||isLoading} onClick={()=>dispatch(createFlightAsync())}>
-            {isLoading&&<Loader2 className="w-5 h-5 animate-spin mr-2"/>}Start Tracking
+          <Button disabled={!isValid || isLoading} onClick={() => dispatch(createFlightAsync())}>
+            {isLoading && <Loader2 className="w-5 h-5 animate-spin mr-2" />}Start Tracking
           </Button>
         </DialogFooter>
       </DialogContent>

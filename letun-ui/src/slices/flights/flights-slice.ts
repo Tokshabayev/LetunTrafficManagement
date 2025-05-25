@@ -106,6 +106,40 @@ export const flightsSlice = createSlice({
             state.isLoading = false;
             state.createFlight.error = (action.payload as string) || "Unknown error";
         });
+
+        builder.addCase(acceptFlightAsync.pending, (state) => {
+            state.isLoading = true;
+        });
+
+        builder.addCase(acceptFlightAsync.fulfilled, (state, action) => {
+            state.isLoading = false;
+            state.error = "";
+            state.flights = action.payload.flights ?? [];
+            state.total = action.payload.total;
+            state.maxPage = action.payload.maxPage;
+        });
+
+        builder.addCase(acceptFlightAsync.rejected, (state, action) => {
+            state.isLoading = false;
+            state.error = (action.payload as string) || "Unknown error";
+        });
+
+        builder.addCase(rejectFlightAsync.pending, (state) => {
+            state.isLoading = true;
+        });
+
+        builder.addCase(rejectFlightAsync.fulfilled, (state, action) => {
+            state.isLoading = false;
+            state.error = "";
+            state.flights = action.payload.flights ?? [];
+            state.total = action.payload.total;
+            state.maxPage = action.payload.maxPage;
+        });
+
+        builder.addCase(rejectFlightAsync.rejected, (state, action) => {
+            state.isLoading = false;
+            state.error = (action.payload as string) || "Unknown error";
+        });
     },
 });
 

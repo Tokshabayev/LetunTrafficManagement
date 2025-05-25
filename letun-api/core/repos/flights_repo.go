@@ -10,8 +10,6 @@ type FlightsRepo struct{}
 func (r *FlightsRepo) GetFlightById(id int) (*models.Flight, error) {
 	var flight models.Flight
 	err := db.DB.Where("id = ?", id).
-		Preload("User").
-		Preload("Drone").
 		First(&flight).Error
 
 	return &flight, err
@@ -53,8 +51,8 @@ func (r *FlightsRepo) List(page int, take int) ([]models.Flight, int, error) {
 	if err := query.
 		Limit(take).
 		Offset(offset).
-		Joins("Join drones on drones.id = flights.drone_id").
-		Joins("Join users on users.id = flights.user_id").
+		Preload("User").
+		Preload("Drone").
 		Find(&flightsList).Error; err != nil {
 		return []models.Flight{}, 0, err
 	}
