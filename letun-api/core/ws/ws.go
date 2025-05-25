@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"letun-api/core/services"
 
@@ -20,7 +21,15 @@ var (
 	Broadcast = make(chan []byte)
 	clients   = make(map[*Client]bool)
 	mu        sync.Mutex
+	drones    = make(map[int]DroneStatus)
 )
+
+type DroneStatus struct {
+	DroneID           int       `json:"drone_id"`
+	FlightID          int       `json:"flight_id"`
+	LastTelemetryTime time.Time `json:"last_telemetry_time"`
+	Active            bool      `json:"active"`
+}
 
 type Client struct {
 	Conn *websocket.Conn
@@ -83,6 +92,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 
 	go writeMessages(client)
+	go startDronesDispatch()
 
 	flightsService := services.FlightsService{}
 
@@ -110,6 +120,12 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 				log.Printf("▶️ Дрон %d стартовал, маршрут: %v", m.DroneID, m.Route)
 			}
 			wsclient.SendMessage(m)
+			drones[m.DroneID] = DroneStatus{
+				DroneID:           m.DroneID,
+				FlightID:          m.FlightID,
+				LastTelemetryTime: time.Now(),
+				Active:            true,
+			}
 			go flightsService.Start(m.FlightID)
 
 		case "telemetry":
@@ -130,6 +146,13 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 					log.Printf("✅ Телеметрия сохранена: drone_id=%d", t.DroneID)
 				}
 
+				drones[t.DroneID] = DroneStatus{
+					DroneID:           t.DroneID,
+					FlightID:          t.FlightID,
+					LastTelemetryTime: time.Now(),
+					Active:            true,
+				}
+
 				wsclient.SendMessage(t)
 
 				// zones, _ := db.CheckZoneViolation(t.Longitude, t.Latitude)
@@ -145,8 +168,34 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			} else {
 				log.Printf("❌ stop unmarshal error: %v", err)
 			}
+			drones[s.DroneID] = DroneStatus{
+				DroneID:           s.DroneID,
+				FlightID:          s.FlightID,
+				LastTelemetryTime: time.Now(),
+				Active:            false,
+			}
 			wsclient.SendMessage(s)
 			go flightsService.Finish(s.FlightID)
+		}
+	}
+}
+
+func startDronesDispatch() {
+	for {
+		time.Sleep(500 * time.Millisecond)
+		for droneID, status := range drones {
+			if status.Active {
+				lastTelemetryTime := status.LastTelemetryTime
+				if time.Since(lastTelemetryTime) > 2*time.Second {
+					log.Printf("🚨 Дрон %d не отправляет телеметрию более 2 секунд", droneID)
+					wsclient.SendMessage(wsclient.LostConnectionMsg{
+						Type:      "lost_connection",
+						FlightID:  status.FlightID,
+						DroneID:   droneID,
+						Timestamp: float64(time.Now().UnixMilli()),
+					})
+				}
+			}
 		}
 	}
 }

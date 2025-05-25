@@ -50,6 +50,13 @@ type TelemetryMsg struct {
 	Timestamp float64 `json:"timestamp"`
 }
 
+type LostConnectionMsg struct {
+	Type      string  `json:"type"`
+	FlightID  int     `json:"flight_id"`
+	DroneID   int     `json:"drone_id"`
+	Timestamp float64 `json:"timestamp"`
+}
+
 // Timestamp – float64, чтобы принять дробный (от Python)
 type StopMsg struct {
 	Type      string  `json:"type"`
