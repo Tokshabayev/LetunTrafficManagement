@@ -3,6 +3,7 @@ import websockets
 import json
 import random
 import time
+import sys
 
 ws_server_url = "ws://localhost:8081/ws"
 
@@ -30,6 +31,14 @@ def generate_route(route):
     detailed_route.append(route[-1])
     return detailed_route
 
+async def wait_before_start(seconds=5):
+    print(f"🕒 Ожидание запуска дрона ({seconds} сек)", end="")
+    for i in range(seconds):
+        await asyncio.sleep(1)
+        print(".", end="")
+        sys.stdout.flush()
+    print(" 🚀")
+
 async def emulate_drone(drone_id, route, flight_id):
     try:
         async with websockets.connect(ws_server_url) as websocket:
@@ -40,7 +49,7 @@ async def emulate_drone(drone_id, route, flight_id):
                 'timestamp': time.time()
             }
 
-            await asyncio.sleep(5)
+            await wait_before_start(5)
             await websocket.send(json.dumps(start_data))
             print(f"✅ Drone {drone_id} sent START: {start_data}")
 

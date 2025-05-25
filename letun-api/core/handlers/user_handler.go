@@ -140,6 +140,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		PhoneNumber: normalizedPhone,
 		Email:       dto.Email,
 		RoleId:      role.Id,
+		IsActive:    true,
 	}
 
 	err = usersRepo.CreateUser(&userModel)
@@ -202,6 +203,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			PhoneNumber: normalizedPhone,
 			Email:       dto.Email,
 			RoleId:      role.Id,
+			IsActive:    true,
 		},
 	)
 

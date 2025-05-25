@@ -377,6 +377,7 @@ func (h *InvitesHandler) LoginOtp(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:   now,
 			UpdatedAt:   now,
 			RoleId:      roleModel.Id,
+			IsActive:    true,
 		}
 		userRepo.CreateUser(&userModel)
 
@@ -404,6 +405,7 @@ func (h *InvitesHandler) LoginOtp(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:   now,
 		RoleId:      roleModel.Id,
 		Email:       inviteModel.Email,
+		IsActive:    true,
 	}
 	userRepo.CreateUser(&userModel)
 
