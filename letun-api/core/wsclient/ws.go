@@ -36,7 +36,7 @@ type StartMsg struct {
 	FlightID  int          `json:"flight_id"`
 	DroneID   int          `json:"drone_id"`
 	Route     [][2]float64 `json:"route"`
-	Timestamp int64        `json:"timestamp"`
+	Timestamp float64      `json:"timestamp"`
 }
 
 type TelemetryMsg struct {
@@ -47,6 +47,7 @@ type TelemetryMsg struct {
 	Longitude float64 `json:"longitude"`
 	Altitude  float64 `json:"altitude"`
 	Speed     float64 `json:"speed"`
+	Timestamp float64 `json:"timestamp"`
 }
 
 // Timestamp – float64, чтобы принять дробный (от Python)

@@ -10,6 +10,7 @@ type FlightsRepo struct{}
 func (r *FlightsRepo) GetFlightById(id int) (*models.Flight, error) {
 	var flight models.Flight
 	err := db.DB.Where("id = ?", id).
+		Preload("Drone").
 		First(&flight).Error
 
 	return &flight, err

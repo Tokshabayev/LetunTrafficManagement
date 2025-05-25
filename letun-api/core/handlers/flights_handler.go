@@ -154,7 +154,7 @@ func (h *FlightsHandler) Accept(w http.ResponseWriter, r *http.Request) {
 		FlightID:  flightId,
 		DroneID:   flight.Drone.Id,
 		Route:     points,
-		Timestamp: time.Now().Unix(),
+		Timestamp: float64(time.Now().UnixMilli()),
 	})
 
 	w.WriteHeader(http.StatusOK)
