@@ -12,7 +12,7 @@ CREATE TABLE flights (
     drone_id INT NOT NULL,
     user_id INT NOT NULL,
     status VARCHAR(255) NOT NULL,
-    points VARCHAR(255) NOT NULL,
+    points TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_drone FOREIGN KEY (drone_id) REFERENCES drones(id),
