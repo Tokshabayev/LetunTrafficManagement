@@ -116,7 +116,7 @@ export function FlightTrack() {
 
   // WebSocket effect
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8080/wsclient');
+    const ws = new WebSocket('ws://localhost:8081/wsclient');
     ws.onopen = () => console.log('WS connected');
     ws.onmessage = ({ data }) => {
       try {

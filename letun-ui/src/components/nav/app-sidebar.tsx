@@ -27,7 +27,7 @@ import User from "@/src/models/users/user";
 
 const data = {
   company: {
-    name: "Letun",
+    name: "LFTS",
     logo: GalleryVerticalEnd,
     plan: "Orki Letyagi inc.",
     url: "/",

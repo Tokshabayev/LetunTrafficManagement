@@ -3,27 +3,9 @@
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
 } from "@/src/components/ui/breadcrumb";
-import { Separator } from "@/src/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/src/components/ui/sidebar";
-import { useRunOnce } from "@/src/core/hooks/use-run-once";
-import { useDispatch } from "react-redux";
-import { initUserAsync } from "../slices/user/user-slice";
-import { AppDispatch } from "../app-store";
-import { AppSidebar } from "../components/nav/app-sidebar";
-import { DataTable } from "@/src/components/dashboard/data-table";
-import { SectionCards } from "@/src/components/dashboard/section-cards";
-import { ChartAreaInteractive } from "@/src/components/dashboard/chart-area-interactive";
-
-import data from "./data.json";
 import { AppHeader } from "../components/header/app-header";
 
 export default function Page() {
@@ -36,19 +18,18 @@ export default function Page() {
               <BreadcrumbPage>Home</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
-        </Breadcrumb>{" "}
+        </Breadcrumb>
       </AppHeader>
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            <SectionCards />
-            <div className="px-4 lg:px-6">
-              <ChartAreaInteractive />
-            </div>
-            <DataTable data={data} />
-          </div>
-        </div>
-      </div>
+
+      <main className="flex flex-1 flex-col items-center text-center px-4 py-20">
+        <img className="w-[300px] h-[300px]" src="/letun.png" alt="" />
+        <h1 className="text-4xl tracking-tight sm:text-5xl">
+          Welcome to the Letun Flight Tracking System (LFTS)
+        </h1>
+        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+          Monitor and control drone flights in real time. Visualize telemetry, check for no-fly zone violations, and more — all in one place.
+        </p>
+      </main>
     </>
   );
 }
