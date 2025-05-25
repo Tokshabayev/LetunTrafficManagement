@@ -148,11 +148,23 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 					log.Printf("✅ Телеметрия сохранена: drone_id=%d", t.DroneID)
 				}
 
+				status := drones[t.DroneID]
+
+				if status.LostConnectionSent {
+					wsclient.SendMessage(wsclient.ConnectionRestoredMsg{
+						Type:      "connection_restored",
+						FlightID:  t.FlightID,
+						DroneID:   t.DroneID,
+						Timestamp: float64(time.Now().UnixMilli()),
+					})
+				}
+
 				drones[t.DroneID] = DroneStatus{
-					DroneID:           t.DroneID,
-					FlightID:          t.FlightID,
-					LastTelemetryTime: time.Now(),
-					Active:            true,
+					DroneID:            t.DroneID,
+					FlightID:           t.FlightID,
+					LastTelemetryTime:  time.Now(),
+					Active:             true,
+					LostConnectionSent: false,
 				}
 
 				wsclient.SendMessage(t)

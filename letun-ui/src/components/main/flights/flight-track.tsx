@@ -60,7 +60,14 @@ interface LostConnectionMsg {
   timestamp: number;
 }
 
-type WSMsg = StartMsg | StopMsg | TelemetryMsg | LostConnectionMsg;
+interface ConnectionRestoredMsg {
+  type: 'connection_restored';
+  flight_id: number;
+  drone_id: number;
+  timestamp: number;
+}
+
+type WSMsg = StartMsg | StopMsg | TelemetryMsg | LostConnectionMsg | ConnectionRestoredMsg;
 
 // Telemetry entry stored in state
 interface TelemetryEntry extends TelemetryMsg {
@@ -123,7 +130,7 @@ export function FlightTrack() {
           const dt = new Date(ms);
           const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
             `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
-          setStatusLog(prev => [...prev, `🚀 Drone ${msg.drone_id} started flight ${msg.flight_id} at ${ts}`]);
+          setStatusLog(prev => [...prev, `🚀 Drone #${msg.drone_id} started for flight #${msg.flight_id} at ${ts}`]);
         }
         else if (msg.type === 'stop') {
           let timestamp = msg.timestamp;
@@ -132,7 +139,7 @@ export function FlightTrack() {
           const dt = new Date(ms);
           const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
             `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
-          setStatusLog(prev => [...prev, `🛑 Drone ${msg.drone_id} stopped flight ${msg.flight_id} at ${ts}`]);
+          setStatusLog(prev => [...prev, `🛑 Drone #${msg.drone_id} stopped for flight #${msg.flight_id} at ${ts}`]);
         }
         else if (msg.type === 'lost_connection') {
           let timestamp = msg.timestamp;
@@ -142,7 +149,17 @@ export function FlightTrack() {
           const dt = new Date(ms);
           const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
             `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
-          setStatusLog(prev => [...prev, `⚠️ Drone ${msg.drone_id} lost connection flight ${msg.flight_id} at ${ts}`]);
+          setStatusLog(prev => [...prev, `⚠️ Drone #${msg.drone_id} lost connection for flight #${msg.flight_id} at ${ts}`]);
+        }
+        else if (msg.type === 'connection_restored') {
+          let timestamp = msg.timestamp;
+          if (typeof timestamp === 'string') timestamp = parseFloat(timestamp);
+          // Проверка, в секундах или миллисекундах
+          const ms = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+          const dt = new Date(ms);
+          const ts = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ` +
+            `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
+          setStatusLog(prev => [...prev, `✅ Drone #${msg.drone_id} connection restored for flight #${msg.flight_id} at ${ts}`]);
         }
         else if (msg.type === 'telemetry') {
           const pt: [number, number] = [msg.latitude, msg.longitude];
@@ -163,7 +180,7 @@ export function FlightTrack() {
           NO_FLY_ZONES.forEach(zone => {
             if (haversine(pt, zone.center) <= zone.radius) {
               const vst = new Date().toISOString().replace('T', ' ').split('.')[0];
-              setStatusLog(prev => [...prev, `⚠️ Drone ${msg.drone_id} entered zone '${zone.name}' at ${ts}`]);
+              setStatusLog(prev => [...prev, `⚠️ Drone #${msg.drone_id} entered zone '${zone.name}' for flight #${msg.flight_id} at ${ts}`]);
             }
           });
           const entry: TelemetryEntry = { ...msg, receivedAt: new Date() };
@@ -208,13 +225,6 @@ export function FlightTrack() {
         </div>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="points">Points</Label>
-            <Input id="points" placeholder="lat,lng;..." disabled={isLoading}
-              className="col-span-3" value={rawPoints}
-              onChange={e => dispatch(flightsActions.setCreateFlightPoints(e.target.value))} />
-          </div>
-
           <div className="h-[600px] w-full">
             {isOpen && (
               <MapContainer key={String(isOpen)} center={[51.1694, 71.4491]} zoom={10}
